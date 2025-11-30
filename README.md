@@ -1,6 +1,6 @@
 # Go SOLID Principles
 
-This repository demonstrates the five SOLID principles of object-oriented design using Go. Each principle is illustrated with both bad and good practice examples to help understand how to write clean, maintainable, and scalable code.
+This repository demonstrates SOLID principles using Go. Each principle is illustrated with both bad and good practice examples to help understand how to write clean, maintainable, and scalable code.
 
 ## 📚 Table of Contents
 
