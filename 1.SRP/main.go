@@ -55,8 +55,9 @@ func (em *employee) getEmail() string {
 	return em.email
 }
 
-func (emr *empRepository) saveEmployee() {
+func (emr *empRepository) saveEmployee(em *employee) {
 	//save to DB
+	fmt.Printf("Saving employee: %s %s (%s)\n", em.firstName, em.lastName, em.email)
 }
 
 func main() {
@@ -67,7 +68,7 @@ func main() {
 	}
 	user.getFullName()
 	user.getEmail()
-	//saving to DB is different responsibility that why we gave userRepository struct to handle database operations.
+	//saving to DB is different responsibility that why we gave empRepository struct to handle database operations.
 	emr := empRepository{}
-	emr.saveEmployee()
+	emr.saveEmployee(&user)
 }

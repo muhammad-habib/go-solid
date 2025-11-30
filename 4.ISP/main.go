@@ -136,10 +136,15 @@ func main() {
 	mgr := Manager{Name: "Bob", Salary: 5000}
 	intern := Intern{Name: "Charlie"}
 
+	// Demonstrate PaidEmployee interface
 	ProcessPayroll(dev) // ok: Developer is PaidEmployee
 	ProcessPayroll(mgr) // ok: Manager is PaidEmployee
 	//ProcessPayroll(intern) // ❌ compile error – Intern is not PaidEmployee
 
+	// Demonstrate TaskAssigner interface
 	AssignWork(mgr, dev, "Implement new feature") // ok
-	AssignWork(dev, intern, "Review code")        // ❌ compile error – Developer is not TaskAssigner
+	//AssignWork(dev, intern, "Review code")        // ❌ compile error – Developer is not TaskAssigner
+
+	// Show that intern implements base Employee interface
+	fmt.Printf("Intern name: %s (implements Employee interface only)\n", intern.GetName())
 }

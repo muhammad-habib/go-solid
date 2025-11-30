@@ -6,6 +6,7 @@ This repository demonstrates the five SOLID principles of object-oriented design
 
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
+- [Project Structure](#project-structure)
 - [SOLID Principles](#solid-principles)
   - [1. Single Responsibility Principle (SRP)](#1-single-responsibility-principle-srp)
   - [2. Open/Closed Principle (OCP)](#2-openclosed-principle-ocp)
@@ -14,6 +15,9 @@ This repository demonstrates the five SOLID principles of object-oriented design
   - [5. Dependency Inversion Principle (DIP)](#5-dependency-inversion-principle-dip)
 - [Running the Examples](#running-the-examples)
 - [Key Takeaways](#key-takeaways)
+- [Best Practices in Go](#-best-practices-in-go)
+- [Common Pitfalls to Avoid](#-common-pitfalls-to-avoid)
+- [Contributing](#-contributing)
 
 ## Overview
 
@@ -21,9 +25,30 @@ SOLID is an acronym for five design principles intended to make software designs
 
 ## Prerequisites
 
-- Go 1.25 or higher
+- Go 1.16 or higher
 - Basic understanding of Go programming language
 - Familiarity with structs, interfaces, and methods in Go
+
+## Project Structure
+
+```
+go-solid/
+├── 1.SRP/
+│   └── main.go          # Single Responsibility Principle
+├── 2.OCP/
+│   └── main.go          # Open/Closed Principle
+├── 3.LSP/
+│   └── main.go          # Liskov Substitution Principle
+├── 4.ISP/
+│   └── main.go          # Interface Segregation Principle
+├── 5.DIP/
+│   └── main.go          # Dependency Inversion Principle
+├── go.mod
+├── LICENSE
+└── README.md
+```
+
+Each directory contains a complete, runnable example demonstrating both bad and good practices for that specific SOLID principle.
 
 ## SOLID Principles
 
@@ -169,8 +194,22 @@ type PaidEmployee interface {
 type TaskAssigner interface {
     AssignTask(task string, assignee Employee) error
 }
+
+// Usage example
+func main() {
+    dev := Developer{Name: "Alice", Salary: 3000}
+    mgr := Manager{Name: "Bob", Salary: 5000}
+    intern := Intern{Name: "Charlie"}
+
+    ProcessPayroll(dev) // ✅ Developer implements PaidEmployee
+    ProcessPayroll(mgr) // ✅ Manager implements PaidEmployee
+    // ProcessPayroll(intern) // ❌ Compile error - Intern doesn't implement PaidEmployee
+    
+    AssignWork(mgr, dev, "Implement feature") // ✅ Manager implements TaskAssigner
+    // AssignWork(dev, intern, "Task") // ❌ Compile error - Developer doesn't implement TaskAssigner
+}
 ```
-**Solution**: Break down fat interfaces into smaller, more specific interfaces. Types only implement what they need.
+**Solution**: Break down fat interfaces into smaller, more specific interfaces. Types only implement what they need. This prevents forcing implementations that don't make sense (like making an Intern handle payroll or a Developer assign tasks).
 
 ---
 
@@ -180,19 +219,49 @@ type TaskAssigner interface {
 
 #### Location: `5.DIP/main.go`
 
-#### Implementation ✅
+#### Bad Practice ❌
 ```go
-type baseEmployee interface {
-    getName() string
-    getSalary() int
+type MySQLDatabase struct{}
+
+func (db MySQLDatabase) SaveToMySQL(name string) {
+    fmt.Println("Saving employee to MySQL:", name)
 }
 
-// High-level function depends on abstraction, not concrete types
-func printEmployeeInfo(em baseEmployee) {
-    fmt.Printf("Name: %s, Salary: %d\n", em.getName(), em.getSalary())
+type EmployeeManager struct {
+    database MySQLDatabase // ❌ Direct dependency on concrete type
+}
+
+func (em EmployeeManager) SaveEmployee(name string) {
+    em.database.SaveToMySQL(name) // ❌ Tightly coupled to MySQL
 }
 ```
-**Key Point**: The `printEmployeeInfo()` function depends on the `baseEmployee` interface (abstraction), not on concrete implementations like `fullTimeEmployee` or `contractorEmployee`. This makes the code more flexible and testable.
+**Problem**: The high-level `EmployeeManager` is tightly coupled to the low-level `MySQLDatabase`. If you want to switch to PostgreSQL, you need to modify `EmployeeManager`.
+
+#### Good Practice ✅
+```go
+// Abstraction - both high and low level modules depend on this
+type EmployeeRepository interface {
+    Save(emp Employee) error
+    GetByName(name string) (Employee, error)
+}
+
+// Low-level modules - implement the abstraction
+type MySQLRepository struct{}
+func (db MySQLRepository) Save(emp Employee) error { /* ... */ }
+
+type PostgresRepository struct{}
+func (db PostgresRepository) Save(emp Employee) error { /* ... */ }
+
+// High-level module - depends on abstraction, not concrete types
+type EmployeeManager struct {
+    repository EmployeeRepository // ✅ Depends on abstraction
+}
+
+func (em EmployeeManager) AddEmployee(emp Employee) {
+    em.repository.Save(emp) // ✅ Works with any repository implementation
+}
+```
+**Solution**: Both high-level (`EmployeeManager`) and low-level modules (`MySQLRepository`, `PostgresRepository`) depend on the `EmployeeRepository` abstraction. You can easily swap database implementations without changing `EmployeeManager`.
 
 ---
 
@@ -227,18 +296,22 @@ go run 5.DIP/main.go
 | **ISP** | No forced dependencies | Small, focused interfaces |
 | **DIP** | Loose coupling, better testing | Depend on interfaces, not concrete types |
 
-## 🎯 Best Practices
+## 🎯 Best Practices in Go
 
 1. **Favor composition over inheritance** - Go doesn't have classical inheritance; use struct embedding and interfaces
-2. **Keep interfaces small** - Go encourages small, focused interfaces (often 1-3 methods)
-3. **Accept interfaces, return structs** - Make your functions flexible by accepting interfaces
-4. **Design from the caller's perspective** - Think about how your code will be used
+2. **Keep interfaces small** - Go encourages small, focused interfaces (often 1-3 methods). "The bigger the interface, the weaker the abstraction." - Rob Pike
+3. **Accept interfaces, return structs** - Make your functions flexible by accepting interfaces as parameters
+4. **Design from the caller's perspective** - Think about how your code will be used, not just how it's implemented
+5. **Use dependency injection** - Pass dependencies (especially interfaces) as parameters rather than creating them internally
+6. **Avoid interface pollution** - Don't create interfaces "just in case". Create them when you actually need abstraction
 
-## 📖 Further Reading
+## ⚠️ Common Pitfalls to Avoid
 
-- [Effective Go](https://golang.org/doc/effective_go)
-- [Go Proverbs](https://go-proverbs.github.io/)
-- [SOLID Principles in Object-Oriented Design](https://en.wikipedia.org/wiki/SOLID)
+1. **Over-engineering** - Don't apply all SOLID principles everywhere. Use them when they add value
+2. **Too many small interfaces** - While ISP is important, don't create an interface for every single method
+3. **Premature abstraction** - Start concrete, refactor to interfaces when you see patterns
+4. **Ignoring Go idioms** - SOLID comes from OOP, but Go has its own way of doing things. Adapt accordingly
+5. **Interface in the producer** - In Go, define interfaces where they're used (consumer), not where they're implemented (producer)
 
 ## 🤝 Contributing
 
